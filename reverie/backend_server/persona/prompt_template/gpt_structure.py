@@ -12,6 +12,8 @@ import time
 from utils import *
 
 openai.api_key = openai_api_key
+openai.api_version = "2023-09-01-preview"
+
 
 def temp_sleep(seconds=0.1):
   time.sleep(seconds)
@@ -21,6 +23,7 @@ def ChatGPT_single_request(prompt):
 
   completion = openai.ChatCompletion.create(
     model="gpt-3.5-turbo", 
+    deployment_id="gpt-35-turbo",
     messages=[{"role": "user", "content": prompt}]
   )
   return completion["choices"][0]["message"]["content"]
@@ -72,6 +75,7 @@ def ChatGPT_request(prompt):
   try: 
     completion = openai.ChatCompletion.create(
     model="gpt-3.5-turbo", 
+    deployment_id="gpt-35-turbo",
     messages=[{"role": "user", "content": prompt}]
     )
     return completion["choices"][0]["message"]["content"]
@@ -251,6 +255,40 @@ def generate_prompt(curr_input, prompt_lib_file):
     prompt = prompt.split("<commentblockmarker>###</commentblockmarker>")[1]
   return prompt.strip()
 
+# Below hack from https://github.com/joonspk-research/generative_agents/issues/35
+
+def ChatGPT_safe_generate_response_2(prompt,
+                                     repeat=3,
+                                     fail_safe_response="error",
+                                     func_validate=None,
+                                     func_clean_up=None,
+                                     verbose=False): 
+  # prompt = 'GPT-3 Prompt:\n"""\n' + prompt + '\n"""\n'
+  # prompt = '"""\n' + prompt + '\n"""\n'
+
+  if verbose: 
+    print ("CHAT GPT PROMPT")
+    print (prompt)
+
+  for i in range(repeat):
+
+    try: 
+      curr_gpt_response = ChatGPT_request(prompt).strip()
+      print("curr_gpt_response")
+      print("-0-0-0-0-0-0-")
+      print(curr_gpt_response)
+      print("-0-0-0-0-0-0-")
+      if func_validate(curr_gpt_response, prompt=prompt): 
+        return_value = func_clean_up(curr_gpt_response, prompt=prompt)
+        print("return_value")
+        print("-0-0-0-0-0-0-")
+        print(return_value)
+        print("-0-0-0-0-0-0-")
+        return return_value
+    except: 
+      pass
+
+  return fail_safe_response
 
 def safe_generate_response(prompt, 
                            gpt_parameter,
@@ -258,14 +296,28 @@ def safe_generate_response(prompt,
                            fail_safe_response="error",
                            func_validate=None,
                            func_clean_up=None,
-                           verbose=False): 
+                           verbose=False):
+  print("[safe_generate_response]: ENTER")
+  print("[safe_generate_response]: Calling")
+  response = ChatGPT_safe_generate_response_2(prompt, repeat=repeat, fail_safe_response=fail_safe_response, func_validate=func_validate, func_clean_up=func_clean_up)
+  return response
+
+  # To get back to normal:
+  # Comment above
+  # Uncomment below
+
   if verbose: 
     print (prompt)
 
   for i in range(repeat): 
     curr_gpt_response = GPT_request(prompt, gpt_parameter)
     if func_validate(curr_gpt_response, prompt=prompt): 
-      return func_clean_up(curr_gpt_response, prompt=prompt)
+      return_value = func_clean_up(curr_gpt_response, prompt=prompt)
+      print("-0-0-0-0-0-0-")
+      print(return_value)
+      print("-0-0-0-0-0-0-")
+      exit()
+      return return_value
     if verbose: 
       print ("---- repeat count: ", i, curr_gpt_response)
       print (curr_gpt_response)
@@ -278,7 +330,10 @@ def get_embedding(text, model="text-embedding-ada-002"):
   if not text: 
     text = "this is blank"
   return openai.Embedding.create(
-          input=[text], model=model)['data'][0]['embedding']
+          input=[text], 
+          model=model,
+          deployment_id="text-embedding-ada-002"
+          )['data'][0]['embedding']
 
 
 if __name__ == '__main__':
