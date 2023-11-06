@@ -7,6 +7,7 @@ memory that aids in grounding their behavior in the game world.
 """
 import json
 import sys
+import random
 sys.path.append('../../')
 
 from utils import *
@@ -104,7 +105,13 @@ class MemoryTree:
     try: 
       x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena]))
     except: 
-      x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena.lower()]))
+      try:
+        x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena.lower()]))
+      except:
+        # Get all available arenas within the sector and randomly choose one
+        available_arenas = list(self.tree[curr_world][curr_sector].keys())
+        curr_arena = random.choice(available_arenas)
+        x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena]))
     return x
 
 

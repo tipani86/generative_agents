@@ -8,6 +8,7 @@ import json
 import random
 import openai
 import time 
+from tqdm import tqdm
 
 from utils import *
 
@@ -15,16 +16,23 @@ openai.api_key = openai_api_key
 openai.api_version = "2023-09-01-preview"
 
 
-def temp_sleep(seconds=0.1):
-  time.sleep(seconds)
+def temp_sleep(length = 1000):
+  # We assume we can write characters at a rate of 1 character per 0.002 seconds.
+  # So, we sleep for 0.002 * length seconds.
+  for _ in tqdm(range(int(length)), desc=f"Pausing for {round(length * 0.002, 1)} seconds"):
+    time.sleep(0.002 * 0.85) # 0.85 to remove the effect of overhead
 
 def ChatGPT_single_request(prompt): 
-  temp_sleep()
+  temp_sleep(len(prompt))
 
   completion = openai.ChatCompletion.create(
     model="gpt-3.5-turbo", 
     deployment_id="gpt-35-turbo",
-    messages=[{"role": "user", "content": prompt}]
+    temperature=0.0,
+    messages=[
+      {"role": "system", "content": "You are a traditional next word prediction / autocomplete model. You output based on the input prompt so far, and will strive to keep the output as brief as possible, usually ending the current line only and stop there. Do not switch context or start new lines that repeat a pattern."},
+      {"role": "user", "content": prompt}
+    ]
   )
   return completion["choices"][0]["message"]["content"]
 
@@ -45,17 +53,22 @@ def GPT4_request(prompt):
   RETURNS: 
     a str of GPT-3's response. 
   """
-  temp_sleep()
+  temp_sleep(len(prompt))
 
   try: 
     completion = openai.ChatCompletion.create(
-    model="gpt-4", 
-    messages=[{"role": "user", "content": prompt}]
+      model="gpt-4",
+      temperature=0.0,
+      messages=[
+        {"role": "system", "content": "You are a traditional next word prediction / autocomplete model. You output based on the input prompt so far, and will strive to keep the output as brief as possible, usually ending the current line only and stop there. Do not switch context or start new lines that repeat a pattern."},
+        {"role": "user", "content": prompt}
+      ]
     )
     return completion["choices"][0]["message"]["content"]
   
-  except: 
+  except Exception as e: 
     print ("ChatGPT ERROR")
+    raise e
     return "ChatGPT ERROR"
 
 
@@ -71,17 +84,22 @@ def ChatGPT_request(prompt):
   RETURNS: 
     a str of GPT-3's response. 
   """
-  # temp_sleep()
+  temp_sleep(len(prompt))
   try: 
     completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
-    deployment_id="gpt-35-turbo",
-    messages=[{"role": "user", "content": prompt}]
+      model="gpt-3.5-turbo", 
+      deployment_id="gpt-35-turbo",
+      temperature=0.0,
+      messages=[
+        {"role": "system", "content": "You are a traditional next word prediction / autocomplete model. You output based on the input prompt so far, and will strive to keep the output as brief as possible, usually ending the current line only and stop there. Do not switch context or start new lines that repeat a pattern."},
+        {"role": "user", "content": prompt}
+      ]
     )
     return completion["choices"][0]["message"]["content"]
   
-  except: 
+  except Exception as e: 
     print ("ChatGPT ERROR")
+    raise e
     return "ChatGPT ERROR"
 
 
